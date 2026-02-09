@@ -48,9 +48,13 @@
   const msgInput = document.getElementById("msg");
 
   let username = localStorage.getItem("username");
-  if (!username) {
-    username = prompt("Choose a username:");
-    localStorage.setItem("username", username);
+
+  while (!username) {
+    username = window.prompt("Choose a username (required):");
+    if (username) {
+      username = username.trim();
+      localStorage.setItem("username", username);
+    }
   }
 
   socket.emit("join", username);

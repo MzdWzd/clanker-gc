@@ -4,92 +4,65 @@
   <meta charset="UTF-8">
   <title>Clanker GC</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #111;
-      color: #fff;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      margin: 0;
-    }
-    #chat {
-      flex: 1;
-      padding: 10px;
-      overflow-y: auto;
-    }
-    #input {
-      display: flex;
-    }
-    input {
-      flex: 1;
-      padding: 10px;
-      font-size: 16px;
-    }
-    button {
-      padding: 10px;
-      font-size: 16px;
-    }
+    body { font-family: Arial; }
+    #chat { height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 5px; }
+    #msg { width: 80%; }
   </style>
 </head>
 <body>
+  <h2>Clanker GC</h2>
 
-<div id="chat"></div>
+  <div id="chat"></div>
 
-<div id="input">
-  <input id="msg" placeholder="Type a message..." />
+  <input id="msg" autocomplete="off">
   <button onclick="send()">Send</button>
-</div>
 
-<script src="/socket.io/socket.io.js"></script>
-<script>
-  const socket = io();
-  const chat = document.getElementById("chat");
-  const msgInput = document.getElementById("msg");
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const chat = document.getElementById("chat");
+    const msgInput = document.getElementById("msg");
 
-  let username = localStorage.getItem("username");
-
-  while (!username) {
-    username = window.prompt("Choose a username (required):");
-    if (username) {
-      username = username.trim();
+    let username = localStorage.getItem("username");
+    if (!username) {
+      username = "Anonymous";
       localStorage.setItem("username", username);
     }
-  }
 
-  socket.emit("join", username);
-
-  socket.on("history", (messages) => {
-    messages.forEach(addMessage);
-  });
-
-  socket.on("chatMessage", addMessage);
-
-  function send() {
-    const text = msgInput.value.trim();
-    if (!text) return;
-
-    socket.emit("chatMessage", {
-      user: username,
-      text
+    socket.on("history", (messages) => {
+      messages.forEach(addMessage);
     });
 
-    msgInput.value = "";
-  }
+    socket.on("chatMessage", addMessage);
 
-  function addMessage(msg) {
-    const div = document.createElement("div");
-    div.innerHTML = `<strong>${msg.user}</strong>
-      <span style="opacity:.6;font-size:.8em">(${msg.time})</span>:
-      ${msg.text}`;
-    chat.appendChild(div);
-    chat.scrollTop = chat.scrollHeight;
-  }
+    function addMessage(msg) {
+      const div = document.createElement("div");
+      div.innerHTML = `<strong>${msg.user}</strong>
+        <span style="opacity:.6;font-size:.8em">(${msg.time})</span>:
+        ${msg.text}`;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
 
-  msgInput.addEventListener("keydown", e => {
-    if (e.key === "Enter") send();
-  });
-</script>
+    function send() {
+      const text = msgInput.value.trim();
+      if (!text) return;
 
+      // keep localStorage in sync with /name
+      if (text.startsWith("/name ")) {
+        const newName = text.slice(6).trim();
+        if (newName) {
+          username = newName;
+          localStorage.setItem("username", newName);
+        }
+      }
+
+      socket.emit("chatMessage", {
+        text
+      });
+
+      msgInput.value = "";
+    }
+  </script>
 </body>
 </html>

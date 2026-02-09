@@ -6,26 +6,31 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-const PORT = process.env.PORT || 10000;
-
 app.use(express.static("public"));
 
-io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
+const chatHistory = [];
 
-  socket.on("chat message", (data) => {
-    io.emit("chat message", {
-      user: data.user,
-      message: data.message,
-      time: new Date().toLocaleTimeString()
-    });
+io.on("connection", (socket) => {
+  socket.on("join", (username) => {
+    socket.username = username;
+    socket.emit("history", chatHistory);
   });
 
-  socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
+  socket.on("chatMessage", (msg) => {
+    const fullMsg = {
+      user: msg.user,
+      text: msg.text,
+      time: new Date().toLocaleTimeString()
+    };
+
+    chatHistory.push(fullMsg);
+    if (chatHistory.length > 100) chatHistory.shift();
+
+    io.emit("chatMessage", fullMsg);
   });
 });
 
-server.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT}`);
+const PORT = process.env.PORT || 10000;
+server.listen(PORT, () => {
+  console.log("Server running on port", PORT);
 });
